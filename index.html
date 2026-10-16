@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0F1012">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ATG">
+  <title>ATG · Against the Grain</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="./assets/index-BdqY_j-c.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BJYHeLMq.css">
+</head>
+<body>
+  <div id="map" aria-label="Map"></div>
+
+  <header class="search">
+    <div class="search-card">
+      <button id="from" class="from" type="button">
+        <span class="label">FROM</span><span id="from-text">Current location</span>
+      </button>
+      <label class="to">
+        <span class="label">TO</span>
+        <input id="to" type="search" placeholder="Where to? (or tap the map)" autocomplete="off" enterkeyhint="search">
+      </label>
+    </div>
+    <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
+  </header>
+
+  <div id="banner" class="banner" role="status" hidden></div>
+
+  <section class="sheet" aria-label="Route">
+    <div class="sheet-head">
+      <div class="brand">ATG</div>
+      <div class="tag">AGAINST THE GRAIN</div>
+    </div>
+
+    <div class="modes" role="tablist" aria-label="Ride style">
+      <button type="button" role="tab" data-mode="direct" aria-selected="true">Direct</button>
+      <button type="button" role="tab" data-mode="chill" aria-selected="false">Chill</button>
+      <button type="button" role="tab" data-mode="scenic" aria-selected="false">Scenic</button>
+    </div>
+
+    <div id="summary" class="summary">
+      <p class="hint">Pick a destination to see your line.</p>
+    </div>
+
+    <button id="go" class="go" type="button" disabled>GO</button>
+  </section>
+
+</body>
+</html>
