@@ -62,6 +62,15 @@ OpenStreetMap (Overpass API) and runs the same three styles in JavaScript
 12 km, but it can be hosted anywhere static. It's published to the
 `gh-pages` branch for GitHub Pages.
 
+## Google Maps comparison
+
+Every route has an "Open in Google Maps" button. To show Google's own cycling
+time (and its route as a grey line) next to ATG's, the app needs a Google Maps
+API key with the **Maps JavaScript API** and **Routes API** enabled. Tap
+"Show Google's time" in the app and paste it (it's saved on that phone only),
+or bake it in at build time with `VITE_GOOGLE_MAPS_KEY`. Restrict the key to
+your site's address in Google Cloud so nobody else can use it.
+
 ## Deploy
 
 The Dockerfile does everything: builds the app, downloads London, builds the

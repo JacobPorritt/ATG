@@ -2,6 +2,7 @@ import maplibregl, { GeoJSONSource, LngLatBoundsLike } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
 import { routeInBrowser } from "./browser-router";
+import { GoogleRoute, googleKey, googleMapsLink, googleRoute, setGoogleKey } from "./google";
 
 type Mode = "direct" | "chill" | "scenic";
 type LngLat = [number, number];
@@ -60,7 +61,14 @@ const state: {
   data: RoutesResponse | null;
   riding: boolean;
   watch: number | null;
-} = { mode: "direct", from: null, fromIsMe: true, to: null, data: null, riding: false, watch: null };
+  google: GoogleRoute | null;
+  googleStatus: "off" | "loading" | "ok" | "error";
+  googleError: string;
+  keyFormOpen: boolean;
+} = {
+  mode: "direct", from: null, fromIsMe: true, to: null, data: null, riding: false, watch: null,
+  google: null, googleStatus: "off", googleError: "", keyFormOpen: false,
+};
 
 // ---------------------------------------------------------------- map
 const map = new maplibregl.Map({
@@ -80,6 +88,14 @@ const pinMarker = new maplibregl.Marker({ element: pinEl });
 
 map.on("load", () => {
   map.addSource("route", { type: "geojson", data: emptyFC() });
+  map.addSource("google", { type: "geojson", data: emptyFC() });
+  map.addLayer({
+    id: "google-route",
+    type: "line",
+    source: "google",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#9AA0A6", "line-width": 4, "line-opacity": 0.55 },
+  });
   map.addLayer({
     id: "route-casing",
     type: "line",
@@ -249,6 +265,7 @@ async function fetchRoutes(fit = true) {
     state.data = body;
     render();
     drawRoute(fit);
+    compareWithGoogle();
   } catch (err) {
     if (seq !== routeSeq) return;
     state.data = null;
@@ -259,6 +276,41 @@ async function fetchRoutes(fit = true) {
     summary.appendChild(p);
     clearRoute();
   }
+}
+
+async function compareWithGoogle() {
+  const from = state.from, to = state.to;
+  state.google = null;
+  drawGoogle();
+  if (!from || !to || !googleKey()) {
+    state.googleStatus = "off";
+    render();
+    return;
+  }
+  state.googleStatus = "loading";
+  render();
+  try {
+    const g = await googleRoute(from, to);
+    if (from !== state.from || to !== state.to) return;
+    state.google = g;
+    state.googleStatus = g ? "ok" : "off";
+  } catch (err) {
+    state.googleStatus = "error";
+    state.googleError = (err as Error).message || "Google time unavailable";
+  }
+  render();
+  drawGoogle();
+}
+
+function drawGoogle() {
+  const src = map.getSource("google") as GeoJSONSource | undefined;
+  if (!src) return;
+  const path = state.riding ? [] : state.google?.path ?? [];
+  src.setData(
+    path.length > 1
+      ? { type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: path } }] }
+      : emptyFC(),
+  );
 }
 
 function current(): Route | null {
@@ -326,11 +378,13 @@ function render() {
   mins.appendChild(el("span", undefined, "min"));
   big.appendChild(mins);
   const meta = el("div", "meta", fmtKm(r.distance_m));
-  if (r.saved_s != null && Math.abs(r.saved_s) >= 60) {
-    const m = Math.round(Math.abs(r.saved_s) / 60);
+  const vsGoogle = state.google ? state.google.duration_s - r.eta_s : null;
+  const diff = vsGoogle ?? r.saved_s;
+  if (diff != null && Math.abs(diff) >= 60) {
+    const m = Math.round(Math.abs(diff) / 60);
     meta.append("  ·  ");
-    meta.appendChild(el("b", undefined, r.saved_s > 0 ? `${m} min faster` : `${m} min longer`));
-    meta.append(" than the by-the-book route");
+    meta.appendChild(el("b", undefined, diff > 0 ? `${m} min faster` : `${m} min longer`));
+    meta.append(vsGoogle != null ? " than Google" : " than the by-the-book route");
   }
   big.appendChild(meta);
   summary.appendChild(big);
@@ -349,7 +403,70 @@ function render() {
   }
   const vibe = state.mode === "scenic" ? `${VIBE.scenic} (${r.green_pct}% green)` : VIBE[state.mode];
   notes.appendChild(note(COLORS[state.mode], vibe));
+  if (state.googleStatus === "ok" && state.google) {
+    const gm = Math.max(1, Math.round(state.google.duration_s / 60));
+    notes.appendChild(note("#9AA0A6", `Google Maps: ${gm} min · ${fmtKm(state.google.distance_m)} (grey line)`));
+  } else if (state.googleStatus === "loading") {
+    notes.appendChild(note("#9AA0A6", "Google Maps: checking…"));
+  } else if (state.googleStatus === "error") {
+    notes.appendChild(note("#9AA0A6", `Google Maps: ${state.googleError}`));
+  }
   summary.appendChild(notes);
+  summary.appendChild(googleActions());
+}
+
+function googleActions() {
+  const wrap = el("div", "gactions");
+  if (state.from && state.to) {
+    const a = el("a", "linkbtn", "Open in Google Maps") as HTMLAnchorElement;
+    a.href = googleMapsLink(state.from, state.to);
+    a.target = "_blank";
+    a.rel = "noopener";
+    wrap.appendChild(a);
+  }
+  const has = !!googleKey();
+  const toggle = el("button", "linkbtn", has ? "Google key" : "Show Google's time") as HTMLButtonElement;
+  toggle.type = "button";
+  toggle.addEventListener("click", () => {
+    state.keyFormOpen = !state.keyFormOpen;
+    render();
+  });
+  wrap.appendChild(toggle);
+  if (state.keyFormOpen) {
+    const form = el("form", "keyform") as HTMLFormElement;
+    const label = el("label", undefined, "Google Maps API key (saved on this phone only)") as HTMLLabelElement;
+    label.htmlFor = "gkey";
+    const input = el("input") as HTMLInputElement;
+    input.id = "gkey";
+    input.type = "text";
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.placeholder = "AIza…";
+    input.value = googleKey() ?? "";
+    const row = el("div", "keyrow");
+    const save = el("button", "linkbtn", "Save") as HTMLButtonElement;
+    save.type = "submit";
+    row.appendChild(save);
+    if (has) {
+      const del = el("button", "linkbtn", "Remove") as HTMLButtonElement;
+      del.type = "button";
+      del.addEventListener("click", () => {
+        setGoogleKey(null);
+        state.keyFormOpen = false;
+        compareWithGoogle();
+      });
+      row.appendChild(del);
+    }
+    form.append(label, input, row);
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      setGoogleKey(input.value.trim() || null);
+      state.keyFormOpen = false;
+      compareWithGoogle();
+    });
+    wrap.appendChild(form);
+  }
+  return wrap;
 }
 
 function note(color: string, text: string) {
@@ -388,6 +505,7 @@ function startRide() {
     undefined,
     { enableHighAccuracy: true, maximumAge: 2000 },
   );
+  drawGoogle();
   if (state.from) map.easeTo({ center: state.from, zoom: 17, duration: 800 });
 }
 
@@ -401,6 +519,7 @@ function stopRide() {
   if (state.watch != null) navigator.geolocation.clearWatch(state.watch);
   state.watch = null;
   drawRoute(true);
+  drawGoogle();
 }
 
 const R = 6371000;
