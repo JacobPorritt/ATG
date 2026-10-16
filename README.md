@@ -53,6 +53,15 @@ To try it on your phone, open the dev server's network address (run
 `npm run dev -- --host`). Location needs HTTPS on a real phone, so for riding
 with it, deploy it (below).
 
+## Test site (no server)
+
+`npm run build:test-site` in `web/` builds a version that routes entirely in
+the browser: it downloads the streets around your trip live from
+OpenStreetMap (Overpass API) and runs the same three styles in JavaScript
+(`web/src/browser-router.ts`). It's slower and limited to trips up to about
+12 km, but it can be hosted anywhere static. It's published to the
+`gh-pages` branch for GitHub Pages.
+
 ## Deploy
 
 The Dockerfile does everything: builds the app, downloads London, builds the

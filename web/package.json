@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:test-site": "tsc --noEmit && VITE_ROUTER=browser vite build --base ./ --outDir dist-test-site",
     "preview": "vite preview"
   },
   "dependencies": {

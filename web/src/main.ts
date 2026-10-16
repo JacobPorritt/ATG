@@ -1,6 +1,7 @@
 import maplibregl, { GeoJSONSource, LngLatBoundsLike } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
+import { routeInBrowser } from "./browser-router";
 
 type Mode = "direct" | "chill" | "scenic";
 type LngLat = [number, number];
@@ -28,6 +29,8 @@ interface RoutesResponse {
 }
 
 const API = import.meta.env.VITE_API_URL ?? "";
+// Test build: route in the browser with live OpenStreetMap data, no server needed
+const BROWSER_ROUTER = import.meta.env.VITE_ROUTER === "browser";
 const MAP_STYLE =
   import.meta.env.VITE_MAP_STYLE ?? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 const LONDON: LngLat = [-0.1276, 51.5072];
@@ -231,11 +234,19 @@ async function fetchRoutes(fit = true) {
   const [fx, fy] = state.from;
   const [tx, ty] = state.to;
   try {
-    const res = await fetch(`${API}/api/routes?from=${fy},${fx}&to=${ty},${tx}`);
-    const body = await res.json();
+    let body: RoutesResponse;
+    if (BROWSER_ROUTER) {
+      body = (await routeInBrowser(state.from, state.to, (msg) => {
+        if (seq === routeSeq) summary.innerHTML = `<p class="hint">${msg}</p>`;
+      })) as RoutesResponse;
+    } else {
+      const res = await fetch(`${API}/api/routes?from=${fy},${fx}&to=${ty},${tx}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.detail ?? "Something went wrong");
+      body = json as RoutesResponse;
+    }
     if (seq !== routeSeq) return;
-    if (!res.ok) throw new Error(body.detail ?? "Something went wrong");
-    state.data = body as RoutesResponse;
+    state.data = body;
     render();
     drawRoute(fit);
   } catch (err) {
@@ -475,5 +486,5 @@ function why(l: Leg) {
 
 // ---------------------------------------------------------------- PWA
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  navigator.serviceWorker.register("/sw.js").catch(() => {});
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
