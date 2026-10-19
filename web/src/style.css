@@ -175,7 +175,6 @@ svg { flex: none; }
 .s-text small { display: block; color: var(--muted); font-size: 13px; }
 
 .compare { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; color: var(--muted); font-size: 13px; }
-.compare .gline { width: 22px; height: 0; border-top: 3px dashed var(--muted); }
 
 .form { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
 .form .row { display: flex; gap: 10px; flex-wrap: wrap; }

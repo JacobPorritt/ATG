@@ -85,8 +85,9 @@ list (needs a small server to hold the API key).
 
 ## Google Maps comparison
 
-Every route has an "Open in Google Maps" button. To show Google's own cycling
-time (and its route as a grey line) next to ATG's, the app needs a Google Maps
+Every route has an "Open in Google Maps" button. To show Google's total cycling
+time next to ATG's (the number only; Google's route is never drawn on our
+map, which their terms don't allow on a non-Google map), the app needs a Google Maps
 API key with the **Maps JavaScript API** and **Routes API** enabled. Tap
 "Show Google's time" in the app and paste it (it's saved on that phone only),
 or bake it in at build time with `VITE_GOOGLE_MAPS_KEY`. Restrict the key to

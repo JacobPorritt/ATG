@@ -1,4 +1,4 @@
-// Google Maps comparison: Google's own cycling route and time for the same trip.
+// Google Maps comparison: Google's total cycling time for the same trip (time only, no route geometry).
 // Needs a Maps JavaScript API key with the Routes API enabled. The key is kept in
 // this browser only (localStorage), or baked in at build time via VITE_GOOGLE_MAPS_KEY.
 
@@ -7,7 +7,6 @@ type LngLat = [number, number];
 export interface GoogleRoute {
   duration_s: number;
   distance_m: number;
-  path: LngLat[];
 }
 
 const STORE = "atg.googleKey";
@@ -77,14 +76,11 @@ export async function googleRoute(from: LngLat, to: LngLat): Promise<GoogleRoute
     origin: { lat: from[1], lng: from[0] },
     destination: { lat: to[1], lng: to[0] },
     travelMode: "BICYCLING",
-    fields: ["durationMillis", "distanceMeters", "path"],
+    fields: ["durationMillis", "distanceMeters"],
   });
   const r = routes?.[0];
   if (!r || r.durationMillis == null) throw new Error("Google found no cycling route");
-  const path: LngLat[] = (r.path ?? []).map((p: any) =>
-    typeof p.lat === "function" ? [p.lng(), p.lat()] : [p.lng, p.lat],
-  );
-  const out = { duration_s: Math.round(r.durationMillis / 1000), distance_m: r.distanceMeters ?? 0, path };
+  const out = { duration_s: Math.round(r.durationMillis / 1000), distance_m: r.distanceMeters ?? 0 };
   cache.set(id, out);
   return out;
 }

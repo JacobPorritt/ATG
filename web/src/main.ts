@@ -133,7 +133,6 @@ let stopMarkers: maplibregl.Marker[] = [];
 
 map.on("load", () => {
   map.addSource("alts", { type: "geojson", data: emptyFC() });
-  map.addSource("google", { type: "geojson", data: emptyFC() });
   map.addSource("route", { type: "geojson", data: emptyFC() });
   map.addLayer({
     id: "alt-casing", type: "line", source: "alts",
@@ -144,11 +143,6 @@ map.on("load", () => {
     id: "alt-line", type: "line", source: "alts",
     layout: { "line-cap": "round", "line-join": "round" },
     paint: { "line-color": ALT, "line-width": 6 },
-  });
-  map.addLayer({
-    id: "google-route", type: "line", source: "google",
-    layout: { "line-join": "round" },
-    paint: { "line-color": "#5E6470", "line-width": 3, "line-dasharray": [2, 1.5], "line-opacity": 0.85 },
   });
   map.addLayer({
     id: "route-casing", type: "line", source: "route",
@@ -574,12 +568,9 @@ function fitTo(coords: LngLat[]) {
   });
 }
 
-function drawGoogle() {
-  const src = map.getSource("google") as GeoJSONSource | undefined;
-  if (!src) return;
-  const path = state.riding || state.view === "wander" ? [] : state.google?.path ?? [];
-  src.setData(path.length > 1 ? { type: "FeatureCollection", features: [lineFeature(path, {})] } : emptyFC());
-}
+// Google's route is never drawn on our map (their terms don't allow it on a
+// non-Google map); we only show their total time as a number.
+function drawGoogle() {}
 
 // ---------------------------------------------------------------- formatting
 function fmtDist(m: number) {
@@ -794,8 +785,7 @@ function step(icon: keyof typeof ICONS, title: string, detail: string, walk: boo
 function googleRow() {
   const row = el("div", "compare");
   if (state.googleStatus === "ok" && state.google) {
-    row.appendChild(el("span", "gline"));
-    row.append(`Google Maps: ${fmtMins(state.google.duration_s)} (${fmtDist(state.google.distance_m)})`);
+    row.append(`Google Maps says ${fmtMins(state.google.duration_s)} by bike`);
   } else if (state.googleStatus === "loading") row.append("Checking Google Maps…");
   else if (state.googleStatus === "error") row.append(`Google Maps: ${state.googleError}`);
   else row.append("Compare with Google's cycling time");
