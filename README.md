@@ -62,6 +62,27 @@ OpenStreetMap (Overpass API) and runs the same three styles in JavaScript
 12 km, but it can be hosted anywhere static. It's published to the
 `gh-pages` branch for GitHub Pages.
 
+## Wander and pub crawl
+
+Wander fills a time window with stops on the way to where you need to be:
+"I've got 5 hours, I need to be at King's Cross by 6, on a bike, in the mood
+for coffee, galleries and a park."
+
+* Venues come live from OpenStreetMap (`web/src/places.ts`). Anything tagged
+  with a brand is left out, so it's independents only.
+* Each venue is checked against its opening hours for the time you'd arrive
+  and leave. Places with no hours listed can still appear, flagged "check
+  opening times".
+* The planner (`web/src/wander.ts`) spreads stops along the line to your end
+  point, keeps detours short, orders the day sensibly (coffee first, pubs
+  last), then routes every leg for real and re-times the day.
+* Swap or remove any stop, or shuffle the whole plan.
+* Pub crawl mode is walking only: short hops between independent pubs around
+  an area you pick.
+
+It's rule-based for now. An AI curator can later re-rank the same candidate
+list (needs a small server to hold the API key).
+
 ## Google Maps comparison
 
 Every route has an "Open in Google Maps" button. To show Google's own cycling

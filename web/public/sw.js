@@ -1,5 +1,5 @@
 // Keep the app shell available offline; always go to the network for routes and map tiles.
-const CACHE = "atg-v2";
+const CACHE = "atg-v3";
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["./", "./manifest.webmanifest", "./icon.svg"])));
   self.skipWaiting();

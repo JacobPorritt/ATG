@@ -10,7 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "maplibre-gl": "^5.0.0"
+    "maplibre-gl": "^5.0.0",
+    "opening_hours": "^3.15.0"
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",

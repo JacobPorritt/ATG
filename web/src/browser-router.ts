@@ -89,6 +89,8 @@ const PROFILES: Record<string, Profile> = {
   chill: { cls: CHILL_CLS, walk: 2.0, steps: 6, contraOk: true, walkOk: true, green: 0, infraRelief: 0.6, unpaved: 1.3, perEdge: 15 },
   scenic: { cls: CHILL_CLS, walk: 1.5, steps: 6, contraOk: true, walkOk: true, green: 0.6, infraRelief: 0.6, unpaved: 1.1, perEdge: 8 },
   standard: { cls: DIRECT_CLS, walk: 1, steps: 1, contraOk: false, walkOk: false, green: 0, infraRelief: 0, unpaved: 1.2, perEdge: 0 },
+  // On foot: every street and path both ways, shortest distance
+  walk: { cls: DIRECT_CLS.map(() => 1), walk: 1, steps: 1.3, contraOk: true, walkOk: true, green: 0, infraRelief: 0, unpaved: 1, perEdge: 0 },
 };
 const RIDE_MPS = 16 / 3.6, WALK_MPS = 4.5 / 3.6, STEPS_MPS = 0.6, JUNCTION_S = 4;
 
@@ -109,7 +111,25 @@ const OVERPASS = [
   "https://overpass.kumi.systems/api/interpreter",
 ];
 
-async function overpass(b: [number, number, number, number]) {
+export type BBox = [number, number, number, number];
+
+/** Run an Overpass QL query against the public servers, trying a mirror if the first is busy. */
+export async function overpassQuery(q: string) {
+  let lastErr: unknown;
+  for (const url of OVERPASS) {
+    try {
+      const res = await fetch(url, { method: "POST", body: "data=" + encodeURIComponent(q),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+      if (!res.ok) throw new Error(`Map data server busy (${res.status}). Try again in a minute.`);
+      return await res.json();
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Couldn't download map data");
+}
+
+async function overpass(b: BBox) {
   const bb = `${b[1]},${b[0]},${b[3]},${b[2]}`;
   const q = `[out:json][timeout:90];(
 way["highway"](${bb});
@@ -120,18 +140,7 @@ way["landuse"~"^(forest|meadow|recreation_ground|village_green|grass|cemetery)$"
 relation["leisure"="park"](${bb});
 relation["natural"="water"](${bb});
 );out geom;`;
-  let lastErr: unknown;
-  for (const url of OVERPASS) {
-    try {
-      const res = await fetch(url, { method: "POST", body: "data=" + encodeURIComponent(q),
-        headers: { "Content-Type": "application/x-www-form-urlencoded" } });
-      if (!res.ok) throw new Error(`Map data server busy (${res.status})`);
-      return await res.json();
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw lastErr instanceof Error ? lastErr : new Error("Couldn't download map data");
+  return overpassQuery(q);
 }
 
 type Ring = { pts: Float64Array; minx: number; miny: number; maxx: number; maxy: number };
@@ -417,13 +426,14 @@ function tailOf(g: Graph, a: number) {
 }
 
 // ---------------------------------------------------------------- assemble
-function assemble(g: Graph, from: LngLat, to: LngLat, arcs: number[]) {
+function assemble(g: Graph, from: LngLat, to: LngLat, arcs: number[], onFoot = false) {
   type L = { kind: "ride" | "walk"; reason: string | null; coords: LngLat[]; distance_m: number; names: string[] };
   const legs: L[] = [];
   let dist = 0, ride = 0, walkM = 0, greenM = 0, eta = 0;
   const push = (kind: "ride" | "walk", reason: string | null, a: LngLat, b: LngLat, len: number, name: string, isGreen: number, steps: boolean) => {
     dist += len; greenM += len * isGreen;
-    if (kind === "ride") { ride += len; eta += len / RIDE_MPS; } else { walkM += len; eta += len / (steps ? STEPS_MPS : WALK_MPS); }
+    if (onFoot) { walkM += len; eta += len / (steps ? STEPS_MPS : WALK_MPS); }
+    else if (kind === "ride") { ride += len; eta += len / RIDE_MPS; } else { walkM += len; eta += len / (steps ? STEPS_MPS : WALK_MPS); }
     const last = legs[legs.length - 1];
     if (last && last.kind === kind && last.reason === reason) {
       last.coords.push(b); last.distance_m += len;
@@ -441,9 +451,10 @@ function assemble(g: Graph, from: LngLat, to: LngLat, arcs: number[]) {
     const e = g.edge[a];
     const u = tailOf(g, a), v = g.to[a];
     const steps = g.eCls[e] === STEPS;
-    const kind = g.mode[a] === WALK || steps ? "walk" : "ride";
+    // on foot everything is walking, so draw it as one solid line
+    const kind = !onFoot && (g.mode[a] === WALK || steps) ? "walk" : "ride";
     const reason = kind === "walk" ? (steps ? "steps" : g.contra[a] ? "one-way" : "footpath") : null;
-    if (kind === "ride" && g.edgeEnd[u]) junctions++;
+    if (!onFoot && kind === "ride" && g.edgeEnd[u]) junctions++;
     push(kind, reason, nodeLL(u), nodeLL(v), g.eLen[e], g.names[g.eName[e]], g.eGreen[e], steps);
   }
   const end = arcs.length ? g.to[arcs[arcs.length - 1]] : -1;
@@ -466,16 +477,19 @@ function contains(b: [number, number, number, number], p: LngLat) {
   return p[0] >= b[0] && p[0] <= b[2] && p[1] >= b[1] && p[1] <= b[3];
 }
 
-export async function routeInBrowser(from: LngLat, to: LngLat, status: (msg: string) => void) {
+function tripBox(from: LngLat, to: LngLat): BBox {
   const kx = 111320 * Math.cos((from[1] * Math.PI) / 180);
   const crow = Math.hypot((from[0] - to[0]) * kx, (from[1] - to[1]) * 110540);
   if (crow > 12000) throw new Error("The test version handles trips up to about 12 km. Pick somewhere closer.");
   const pad = Math.max(700, crow * 0.3);
   const padLon = pad / kx, padLat = pad / 110540;
-  const bbox: [number, number, number, number] = [
+  return [
     Math.min(from[0], to[0]) - padLon, Math.min(from[1], to[1]) - padLat,
     Math.max(from[0], to[0]) + padLon, Math.max(from[1], to[1]) + padLat,
   ];
+}
+
+async function graphFor(bbox: BBox, status: (msg: string) => void) {
   let g = cache;
   if (!g || !contains(g.bbox, [bbox[0], bbox[1]]) || !contains(g.bbox, [bbox[2], bbox[3]])) {
     status("Downloading the streets around your trip…");
@@ -488,10 +502,34 @@ export async function routeInBrowser(from: LngLat, to: LngLat, status: (msg: str
     status("Finding your line…");
     await new Promise((r) => setTimeout(r, 30));
   }
+  return g;
+}
+
+function endpoints(g: Graph, from: LngLat, to: LngLat) {
   const s = nearestNode(g, from[0], from[1]);
   const t = nearestArrival(g, to[0], to[1]);
   if (s.node < 0 || t.node < 0 || s.dist > 400 || t.dist > 400)
     throw new Error("Couldn't find a street near there. Try a point on a road or path.");
+  return { s, t };
+}
+
+/** One leg of a Wander plan: the Chill line on a bike, or the shortest way on foot. */
+export async function routeLeg(from: LngLat, to: LngLat, onFoot: boolean, status: (msg: string) => void = () => {}) {
+  const g = await graphFor(tripBox(from, to), status);
+  const { s, t } = endpoints(g, from, to);
+  const arcs = s.node === t.node ? [] : astar(g, onFoot ? "walk" : "chill", s.node, t.node);
+  if (!arcs) throw new Error("Couldn't find a way between two of the stops.");
+  if (!arcs.length) {
+    const d = Math.hypot((from[0] - to[0]) * g.kx, (from[1] - to[1]) * g.ky);
+    return { distance_m: Math.round(d), eta_s: Math.round(d / (onFoot ? WALK_MPS : RIDE_MPS)), ride_m: 0, walk_m: 0, green_pct: 0,
+      walk_throughs: [], legs: [{ kind: "ride" as const, reason: null, coords: [from, to], distance_m: Math.round(d), names: [] }], saved_s: null };
+  }
+  return assemble(g, from, to, arcs, onFoot);
+}
+
+export async function routeInBrowser(from: LngLat, to: LngLat, status: (msg: string) => void) {
+  const g = await graphFor(tripBox(from, to), status);
+  const { s, t } = endpoints(g, from, to);
 
   const run = (p: string) => {
     const arcs = astar(g!, p, s.node, t.node);
