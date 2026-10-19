@@ -41,5 +41,5 @@ jobs:
         if: failure()
         run: |
           # Put the end of the log in an annotation so it shows on the run's summary page
-          tail -n 80 deploy.log | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > tail.txt
-          echo "::error title=Deploy log (last 80 lines)::$(cat tail.txt)"
+          tr '\r' '\n' < deploy.log | grep -v '^\s*$' | grep -v '% Total\|Dload\|^#[0-9]* [0-9.]* *[0-9]* *[0-9.]*[kMG]' | tail -n 45 | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > tail.txt
+          echo "::error title=Deploy log (end)::$(cat tail.txt)"
