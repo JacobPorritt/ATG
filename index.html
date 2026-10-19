@@ -13,9 +13,9 @@
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="./assets/index-CZ5rq-Lc.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-DkFpOQjn.css">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="./assets/index-CIzOSXl_.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CfqmA2vo.css">
 </head>
 <body>
   <div id="map" aria-label="Map"></div>
@@ -25,17 +25,18 @@
       <div class="search-icons" aria-hidden="true">
         <span class="ico-me"></span>
         <span class="ico-dots"></span>
-        <svg class="ico-pin" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+        <span class="ico-to"></span>
       </div>
       <div class="search-fields">
-        <button id="from" class="field from" type="button">
-          <span id="from-text">Your location</span>
-        </button>
+        <button id="from" class="field from" type="button"><span id="from-text">Your location</span></button>
         <label class="field to" for="to">
           <span class="sr-only">Destination</span>
-          <input id="to" type="search" placeholder="Choose destination" autocomplete="off" enterkeyhint="search">
+          <input id="to" type="search" placeholder="Where to?" autocomplete="off" enterkeyhint="search">
         </label>
       </div>
+      <button id="clear" class="clear" type="button" aria-label="Clear destination" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
     </div>
     <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
   </header>
@@ -46,28 +47,25 @@
     <div class="handle" aria-hidden="true"></div>
 
     <div class="modes" role="tablist" aria-label="Ride style">
-      <button type="button" role="tab" data-mode="direct" aria-selected="true">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M10 5h9v9"/></svg>
-        <span class="mode-name">Direct</span><span class="mode-time" data-time="direct"></span>
-      </button>
-      <button type="button" role="tab" data-mode="chill" aria-selected="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9c3-3 6 3 9 0s6 3 9 0M3 15c3-3 6 3 9 0s6 3 9 0"/></svg>
-        <span class="mode-name">Chill</span><span class="mode-time" data-time="chill"></span>
-      </button>
-      <button type="button" role="tab" data-mode="scenic" aria-selected="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22v-6M12 16c-4 0-6-2.5-6-5.5S8.5 4 12 2c3.5 2 6 5.5 6 8.5S16 16 12 16z"/></svg>
-        <span class="mode-name">Scenic</span><span class="mode-time" data-time="scenic"></span>
-      </button>
+      <button type="button" role="tab" data-mode="direct" aria-selected="true"><span class="mode-name">Direct</span><span class="mode-time" data-time="direct"></span></button>
+      <button type="button" role="tab" data-mode="chill" aria-selected="false"><span class="mode-name">Chill</span><span class="mode-time" data-time="chill"></span></button>
+      <button type="button" role="tab" data-mode="scenic" aria-selected="false"><span class="mode-name">Scenic</span><span class="mode-time" data-time="scenic"></span></button>
+      <button type="button" role="tab" data-mode="wander" aria-selected="false" class="wander"><span class="mode-name">Wander</span><span class="mode-time">plan a day</span></button>
     </div>
 
     <div id="summary" class="summary"></div>
 
     <div class="actions">
-      <button id="go" class="start" type="button" disabled>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4.5 20.3l.7.7L12 18l6.8 3 .7-.7z"/></svg>
-        <span id="go-label">Start</span>
+      <button id="go" class="primary" type="button" disabled><span id="go-label">Let's go</span></button>
+      <button id="shuffle" class="round" type="button" aria-label="Shuffle the plan" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
       </button>
-      <a id="gmaps" class="pill" href="https://www.google.com/maps" target="_blank" rel="noopener" hidden>Open in Google Maps</a>
+      <button id="edit" class="round" type="button" aria-label="Change the plan settings" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+      </button>
+      <a id="gmaps" class="round" href="https://www.google.com/maps" target="_blank" rel="noopener" aria-label="Open in Google Maps" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+      </a>
     </div>
   </section>
 
