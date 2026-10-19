@@ -17,7 +17,7 @@ from . import tags as T
 RIDE_MPS = 16 / 3.6     # London average-ish cycling speed
 WALK_MPS = 4.5 / 3.6    # pushing a bike
 STEPS_MPS = 0.6         # carrying it up steps
-JUNCTION_S = 4          # average delay per junction when riding
+JUNCTION_S = 1.5        # average delay per junction when riding (most are quiet side-street crossings)
 
 SNAP_MAX_M = 400
 
@@ -53,8 +53,10 @@ PROFILES = {
     "scenic": Profile("scenic", CHILL_CLS, walk_mult=1.5, steps_mult=6.0, infra_relief=0.6,
                       green_bonus=0.6, unpaved_mult=1.1, per_edge=8),
     # What a normal law-abiding cycle router would do. Used for "time saved".
-    "standard": Profile("standard", DIRECT_CLS, walk_mult=1.0, steps_mult=1.0,
-                        contra_ok=False, walk_ok=False, unpaved_mult=1.2),
+    # Pushing along a footpath is allowed (normal routers do it to get out of stations
+    # and squares) but heavily discouraged; going against a one-way is not.
+    "standard": Profile("standard", DIRECT_CLS, walk_mult=4.0, steps_mult=6.0,
+                        contra_ok=False, walk_ok=True, unpaved_mult=1.2),
 }
 
 MODES = ("direct", "chill", "scenic")

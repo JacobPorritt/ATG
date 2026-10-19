@@ -88,11 +88,11 @@ const PROFILES: Record<string, Profile> = {
   direct: { cls: DIRECT_CLS, walk: 1.35, steps: 4, contraOk: true, walkOk: true, green: 0, infraRelief: 0, unpaved: 1.2, perEdge: 0 },
   chill: { cls: CHILL_CLS, walk: 2.0, steps: 6, contraOk: true, walkOk: true, green: 0, infraRelief: 0.6, unpaved: 1.3, perEdge: 15 },
   scenic: { cls: CHILL_CLS, walk: 1.5, steps: 6, contraOk: true, walkOk: true, green: 0.6, infraRelief: 0.6, unpaved: 1.1, perEdge: 8 },
-  standard: { cls: DIRECT_CLS, walk: 1, steps: 1, contraOk: false, walkOk: false, green: 0, infraRelief: 0, unpaved: 1.2, perEdge: 0 },
+  standard: { cls: DIRECT_CLS, walk: 4, steps: 6, contraOk: false, walkOk: true, green: 0, infraRelief: 0, unpaved: 1.2, perEdge: 0 },
   // On foot: every street and path both ways, shortest distance
   walk: { cls: DIRECT_CLS.map(() => 1), walk: 1, steps: 1.3, contraOk: true, walkOk: true, green: 0, infraRelief: 0, unpaved: 1, perEdge: 0 },
 };
-const RIDE_MPS = 16 / 3.6, WALK_MPS = 4.5 / 3.6, STEPS_MPS = 0.6, JUNCTION_S = 4;
+const RIDE_MPS = 16 / 3.6, WALK_MPS = 4.5 / 3.6, STEPS_MPS = 0.6, JUNCTION_S = 1.5;
 
 // ---------------------------------------------------------------- graph
 interface Graph {
