@@ -108,8 +108,10 @@ interface Graph {
 
 const OVERPASS = [
   "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
 ];
+const SERVER_TIMEOUT_MS = 30000;
 
 export type BBox = [number, number, number, number];
 
@@ -118,28 +120,43 @@ export async function overpassQuery(q: string) {
   let lastErr: unknown;
   for (const url of OVERPASS) {
     try {
-      const res = await fetch(url, { method: "POST", body: "data=" + encodeURIComponent(q),
-        headers: { "Content-Type": "application/x-www-form-urlencoded" } });
-      if (!res.ok) throw new Error(`Map data server busy (${res.status}). Try again in a minute.`);
-      return await res.json();
+      // give each server a fair go, then try the next one rather than hanging
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), SERVER_TIMEOUT_MS);
+      try {
+        const res = await fetch(url, { method: "POST", body: "data=" + encodeURIComponent(q), signal: ctl.signal,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+        if (!res.ok) throw new Error(`Map data server busy (${res.status}). Try again in a minute.`);
+        return await res.json();
+      } finally {
+        clearTimeout(timer);
+      }
     } catch (e) {
       lastErr = e;
     }
   }
+  if (lastErr instanceof DOMException && lastErr.name === "AbortError")
+    throw new Error("The free map data servers are slow right now. Try again in a minute.");
   throw lastErr instanceof Error ? lastErr : new Error("Couldn't download map data");
 }
 
+// Only the street types we can ride or walk. Pavements and crossings mapped as
+// separate lines are left out: walking against a one-way uses the street itself,
+// and in central London they'd roughly double the download.
+const ROUTABLE = "^(trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|" +
+  "unclassified|road|residential|living_street|service|track|cycleway|path|bridleway|footway|pedestrian|steps)$";
+
 async function overpass(b: BBox) {
   const bb = `${b[1]},${b[0]},${b[3]},${b[2]}`;
-  const q = `[out:json][timeout:90];(
-way["highway"](${bb});
+  const q = `[out:json][timeout:60];(
+way["highway"~"${ROUTABLE}"]["footway"!~"^(sidewalk|crossing|traffic_island)$"]["service"!~"^(parking_aisle|drive-through)$"]["area"!="yes"]["access"!~"^(private|no)$"](${bb});
 way["waterway"~"^(canal|river|riverbank)$"](${bb});
 way["natural"~"^(water|wood|heath|scrub|grassland)$"](${bb});
 way["leisure"~"^(park|garden|nature_reserve|common|recreation_ground|village_green)$"](${bb});
 way["landuse"~"^(forest|meadow|recreation_ground|village_green|grass|cemetery)$"](${bb});
 relation["leisure"="park"](${bb});
 relation["natural"="water"](${bb});
-);out geom;`;
+);out geom qt;`;
   return overpassQuery(q);
 }
 
@@ -481,7 +498,7 @@ function tripBox(from: LngLat, to: LngLat): BBox {
   const kx = 111320 * Math.cos((from[1] * Math.PI) / 180);
   const crow = Math.hypot((from[0] - to[0]) * kx, (from[1] - to[1]) * 110540);
   if (crow > 12000) throw new Error("The test version handles trips up to about 12 km. Pick somewhere closer.");
-  const pad = Math.max(700, crow * 0.3);
+  const pad = Math.max(500, crow * 0.2);
   const padLon = pad / kx, padLat = pad / 110540;
   return [
     Math.min(from[0], to[0]) - padLon, Math.min(from[1], to[1]) - padLat,
@@ -493,7 +510,8 @@ async function graphFor(bbox: BBox, status: (msg: string) => void) {
   let g = cache;
   if (!g || !contains(g.bbox, [bbox[0], bbox[1]]) || !contains(g.bbox, [bbox[2], bbox[3]])) {
     status("Downloading the streets around your trip…");
-    const data = await overpass(bbox);
+    const slow = setTimeout(() => status("Still downloading. Central London is a lot of streets, give it a few more seconds…"), 8000);
+    const data = await overpass(bbox).finally(() => clearTimeout(slow));
     status("Finding your line…");
     await new Promise((r) => setTimeout(r, 30));
     g = buildGraph(data, bbox);
