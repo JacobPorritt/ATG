@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY atgroute ./atgroute
 
 FROM base AS graph
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates libexpat1 && rm -rf /var/lib/apt/lists/*
 # Bump this to force a fresh map download on the next build
 ARG MAP_VERSION=1
 RUN mkdir -p data && curl -fsSL --retry 3 -o data/london.osm.pbf \
