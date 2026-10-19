@@ -295,7 +295,9 @@ class Graph:
                 eta += length / RIDE_MPS + JUNCTION_S
             else:
                 walk_m += length
-                eta += length / (STEPS_MPS if steps else WALK_MPS)
+                # Hop-off sections are timed at riding speed (riders mostly roll through);
+                # only steps are timed as carrying the bike.
+                eta += length / (STEPS_MPS if steps else RIDE_MPS)
             name = self.names[int(self.edge_name[e])]
             last = legs[-1] if legs else None
             if last and last["kind"] == kind and last["reason"] == reason:

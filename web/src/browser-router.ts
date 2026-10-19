@@ -450,7 +450,7 @@ function assemble(g: Graph, from: LngLat, to: LngLat, arcs: number[], onFoot = f
   const push = (kind: "ride" | "walk", reason: string | null, a: LngLat, b: LngLat, len: number, name: string, isGreen: number, steps: boolean) => {
     dist += len; greenM += len * isGreen;
     if (onFoot) { walkM += len; eta += len / (steps ? STEPS_MPS : WALK_MPS); }
-    else if (kind === "ride") { ride += len; eta += len / RIDE_MPS; } else { walkM += len; eta += len / (steps ? STEPS_MPS : WALK_MPS); }
+    else if (kind === "ride") { ride += len; eta += len / RIDE_MPS; } else { walkM += len; eta += len / (steps ? STEPS_MPS : RIDE_MPS); } // hop-offs timed at riding speed, steps as carrying
     const last = legs[legs.length - 1];
     if (last && last.kind === kind && last.reason === reason) {
       last.coords.push(b); last.distance_m += len;

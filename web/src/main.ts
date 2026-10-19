@@ -754,7 +754,7 @@ function limeForm() {
   if (p.plan === "payg") row.append(field("lime-unlock", "Unlock (£)", p.unlock, "unlock"), field("lime-min", "Per minute (£)", p.perMin, "perMin"));
   else row.append(field("lime-flat", "Per ride (£)", p.primeFlat, "primeFlat"), field("lime-mins", "Minutes covered", p.primeMins, "primeMins"));
   form.appendChild(row);
-  form.appendChild(el("p", "note", "Check the Lime app for today's prices. You still pay while walking the bike."));
+  form.appendChild(el("p", "note", "Check the Lime app for today's prices."));
   form.addEventListener("submit", (e) => e.preventDefault());
   return form;
 }
