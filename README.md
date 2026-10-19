@@ -34,7 +34,7 @@ phone web app (web/)  <-  /api/routes  <-  atgroute.app (A* router)
   mode it warns you before you need to hop off.
 
 Map data © OpenStreetMap contributors. Search uses Photon (komoot). The dark
-basemap is CARTO Dark Matter; swap it with `VITE_MAP_STYLE` if needed.
+basemap is OpenFreeMap (Liberty style), free with no key; swap it with `VITE_MAP_STYLE` if needed.
 
 ## Run it locally
 
