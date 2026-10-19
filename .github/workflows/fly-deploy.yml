@@ -1,0 +1,35 @@
+# Deploys ATG to Fly.io. Runs on every push to main that touches the app,
+# can be run by hand from the Actions tab, and runs weekly to pick up fresh
+# OpenStreetMap data for London.
+#
+# Needs one repository secret: FLY_API_TOKEN (a token from fly.io/user/personal_access_tokens).
+name: Deploy to Fly.io
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "atgroute/**"
+      - "web/**"
+      - "Dockerfile"
+      - "fly.toml"
+      - "requirements.txt"
+  schedule:
+    - cron: "17 4 * * 1" # Mondays 04:17 UTC: rebuild with the latest map data
+
+concurrency: fly-deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP: atg-ldn-jp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Create the app the first time
+        run: flyctl apps list --json | grep -q "\"$APP\"" || flyctl apps create "$APP" --org personal
+      - name: Deploy
+        run: flyctl deploy --remote-only --app "$APP" --ha=false --build-arg MAP_VERSION="$(date +%G%V)"

@@ -7,6 +7,7 @@ out once at start-up.
 """
 import heapq
 import math
+from array import array
 
 import numpy as np
 from scipy.spatial import cKDTree
@@ -107,15 +108,16 @@ class Graph:
         # projected coordinates for heuristics and snapping
         self.kx = 111320.0 * math.cos(math.radians(self.lat0))
         self.ky = 110540.0
-        self.node_x = (self.node_lon * self.kx).tolist()
-        self.node_y = (self.node_lat * self.ky).tolist()
+        # array.array: compact like numpy, but fast to index one value at a time in the A* loop
+        self.node_x = _arr("d", self.node_lon * self.kx)
+        self.node_y = _arr("d", self.node_lat * self.ky)
         gx = self.geom_lon * self.kx
         gy = self.geom_lat * self.ky
         self.geom_edge = np.repeat(np.arange(n_edges), self.geom_end - self.geom_off)
         self.tree = cKDTree(np.column_stack([gx, gy])) if len(gx) else None
 
-        self._indptr = self.indptr.tolist()
-        self._arc_to = self.arc_to.tolist()
+        self._indptr = _arr("q", self.indptr)
+        self._arc_to = _arr("q", self.arc_to)
         self.costs = {name: self._arc_costs(p) for name, p in PROFILES.items()}
 
     # cost per arc, in effective metres; -1 means "can't use this arc"
@@ -140,7 +142,7 @@ class Graph:
             cost = np.where(self.arc_contra, -1.0, cost)
         usable = cost >= 0
         self_min = float(mult[usable].min()) if usable.any() else 1.0
-        return cost.tolist(), max(self_min, 0.05)
+        return _arr("d", cost), max(self_min, 0.05)
 
     # ------------------------------------------------------------------
     def snap(self, lat, lon):
@@ -330,6 +332,12 @@ class Graph:
             r["saved_s"] = std["eta_s"] - r["eta_s"] if std else None
             out[m] = r
         return {"routes": out, "standard": {k: std[k] for k in ("distance_m", "eta_s")} if std else None}
+
+
+def _arr(code, values):
+    a = array(code)
+    a.frombytes(np.ascontiguousarray(values, dtype=np.float64 if code == "d" else np.int64).tobytes())
+    return a
 
 
 def _length(pts, kx, ky):

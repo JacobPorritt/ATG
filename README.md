@@ -30,11 +30,11 @@ phone web app (web/)  <-  /api/routes  <-  atgroute.app (A* router)
 * `atgroute/router.py` runs A* with a different cost per style. The numbers
   that set the feel of each style are in the `PROFILES` table at the top.
 * `web/` is a phone-first web app (Vite + TypeScript + MapLibre) you can add to
-  your home screen. Walk-through bits are drawn as dashed yellow, and in ride
+  your home screen. Walk-through bits are drawn as a dotted line, and in ride
   mode it warns you before you need to hop off.
 
-Map data © OpenStreetMap contributors. Search uses Photon (komoot). The dark
-basemap is OpenFreeMap (Liberty style), free with no key; swap it with `VITE_MAP_STYLE` if needed.
+Map data © OpenStreetMap contributors. Search uses Photon (komoot). The
+basemap is OpenFreeMap (Positron style), free with no key; swap it with `VITE_MAP_STYLE` if needed.
 
 ## Run it locally
 
@@ -93,17 +93,25 @@ API key with the **Maps JavaScript API** and **Routes API** enabled. Tap
 or bake it in at build time with `VITE_GOOGLE_MAPS_KEY`. Restrict the key to
 your site's address in Google Cloud so nobody else can use it.
 
-## Deploy
+## Deploy (Fly.io)
 
-The Dockerfile does everything: builds the app, downloads London, builds the
-graph and serves app and API from one container on `$PORT`. It runs happily on
-a 1 GB instance on Fly.io, Railway or Render. Rebuild to refresh the map data
-(bump the `MAP_VERSION` build arg).
+The Dockerfile does everything: builds the app, downloads London from
+Geofabrik, builds the routing graph and serves app and API from one container.
+`fly.toml` runs it on a 1 GB machine in London that sleeps when idle.
 
-```sh
-docker build -t atg .
-docker run -p 8000:8000 atg
-```
+Deploys run from GitHub Actions (`.github/workflows/fly-deploy.yml`): on every
+push to `main` that touches the app, by hand from the Actions tab, and weekly
+to pick up fresh map data. One-time setup:
+
+1. Make a Fly.io account and add a payment card.
+2. Create a token at fly.io/user/personal_access_tokens.
+3. Add it to this repo under Settings > Secrets and variables > Actions as
+   `FLY_API_TOKEN`.
+4. Actions tab > Deploy to Fly.io > Run workflow. The first build takes a while
+   (it downloads and processes all of London).
+
+The app is then at https://atg-ldn-jp.fly.dev. To deploy by hand instead:
+`fly deploy --remote-only`.
 
 ## Tests
 

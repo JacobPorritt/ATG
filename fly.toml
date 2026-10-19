@@ -1,0 +1,36 @@
+# Fly.io config for ATG: app + routing API in one container, in London.
+app = "atg-ldn-jp"
+primary_region = "lhr"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8000"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  # Sleep when nobody's using it (cheap while testing). The first request after a
+  # nap takes a few seconds while London loads. Set min_machines_running = 1 to keep it warm.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 20
+
+  [[http_service.checks]]
+    grace_period = "90s"
+    interval = "30s"
+    method = "GET"
+    path = "/api/health"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+
+# A little swap as a safety net while the London network loads
+swap_size_mb = 512

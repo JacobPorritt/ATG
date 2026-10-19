@@ -56,6 +56,10 @@ def classify(tags):
         return None
     if tags.get("area") == "yes" and cls not in (FOOTWAY,):
         return None
+    # Pavements and crossings drawn as their own lines: walking against a
+    # one-way uses the street itself, and in London these double the network.
+    if tags.get("footway") in ("sidewalk", "crossing", "traffic_island"):
+        return None
     if hw == "service" and tags.get("service") in ("parking_aisle", "drive-through"):
         pass  # rideable, just not interesting; keep it
 
