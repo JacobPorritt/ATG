@@ -30,6 +30,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Create the app the first time
-        run: flyctl apps list --json | grep -q "\"$APP\"" || flyctl apps create "$APP" --org personal
+        run: flyctl apps list --json | grep -q "\"$APP\"" || flyctl apps create "$APP" --org jacob-porritt
       - name: Deploy
         run: flyctl deploy --remote-only --app "$APP" --ha=false --build-arg MAP_VERSION="$(date +%G%V)"
