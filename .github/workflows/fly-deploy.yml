@@ -2,7 +2,7 @@
 # can be run by hand from the Actions tab, and runs weekly to pick up fresh
 # OpenStreetMap data for London.
 #
-# Needs one repository secret: FLY_API_TOKEN (a token from fly.io/user/personal_access_tokens).
+# Needs one repository secret: FLY_API_TOKEN (a Fly deploy token for the app).
 name: Deploy to Fly.io
 
 on:
@@ -15,6 +15,7 @@ on:
       - "Dockerfile"
       - "fly.toml"
       - "requirements.txt"
+      - ".github/workflows/fly-deploy.yml"
   schedule:
     - cron: "17 4 * * 1" # Mondays 04:17 UTC: rebuild with the latest map data
 
@@ -23,13 +24,22 @@ concurrency: fly-deploy
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       APP: atg-ldn-jp
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Create the app the first time
         run: flyctl status --app "$APP" >/dev/null 2>&1 || flyctl apps create "$APP" --org personal
       - name: Deploy
-        run: flyctl deploy --remote-only --app "$APP" --ha=false --build-arg MAP_VERSION="$(date +%G%V)"
+        run: |
+          set -o pipefail
+          flyctl deploy --remote-only --app "$APP" --ha=false --build-arg MAP_VERSION="$(date +%G%V)" 2>&1 | tee deploy.log
+      - name: Show why it failed
+        if: failure()
+        run: |
+          # Put the end of the log in an annotation so it shows on the run's summary page
+          tail -n 80 deploy.log | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > tail.txt
+          echo "::error title=Deploy log (last 80 lines)::$(cat tail.txt)"
