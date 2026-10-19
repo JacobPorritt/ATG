@@ -3,31 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0F1012">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="color-scheme" content="light">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="ATG">
   <title>ATG · Against the Grain</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="./assets/index-DkNfQdT3.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-DPJ4bEKE.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="./assets/index-CZ5rq-Lc.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DkFpOQjn.css">
 </head>
 <body>
   <div id="map" aria-label="Map"></div>
 
   <header class="search">
     <div class="search-card">
-      <button id="from" class="from" type="button">
-        <span class="label">FROM</span><span id="from-text">Current location</span>
-      </button>
-      <label class="to">
-        <span class="label">TO</span>
-        <input id="to" type="search" placeholder="Where to? (or tap the map)" autocomplete="off" enterkeyhint="search">
-      </label>
+      <div class="search-icons" aria-hidden="true">
+        <span class="ico-me"></span>
+        <span class="ico-dots"></span>
+        <svg class="ico-pin" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+      </div>
+      <div class="search-fields">
+        <button id="from" class="field from" type="button">
+          <span id="from-text">Your location</span>
+        </button>
+        <label class="field to" for="to">
+          <span class="sr-only">Destination</span>
+          <input id="to" type="search" placeholder="Choose destination" autocomplete="off" enterkeyhint="search">
+        </label>
+      </div>
     </div>
     <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
   </header>
@@ -35,22 +43,32 @@
   <div id="banner" class="banner" role="status" hidden></div>
 
   <section class="sheet" aria-label="Route">
-    <div class="sheet-head">
-      <div class="brand">ATG</div>
-      <div class="tag">AGAINST THE GRAIN</div>
-    </div>
+    <div class="handle" aria-hidden="true"></div>
 
     <div class="modes" role="tablist" aria-label="Ride style">
-      <button type="button" role="tab" data-mode="direct" aria-selected="true">Direct</button>
-      <button type="button" role="tab" data-mode="chill" aria-selected="false">Chill</button>
-      <button type="button" role="tab" data-mode="scenic" aria-selected="false">Scenic</button>
+      <button type="button" role="tab" data-mode="direct" aria-selected="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M10 5h9v9"/></svg>
+        <span class="mode-name">Direct</span><span class="mode-time" data-time="direct"></span>
+      </button>
+      <button type="button" role="tab" data-mode="chill" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9c3-3 6 3 9 0s6 3 9 0M3 15c3-3 6 3 9 0s6 3 9 0"/></svg>
+        <span class="mode-name">Chill</span><span class="mode-time" data-time="chill"></span>
+      </button>
+      <button type="button" role="tab" data-mode="scenic" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22v-6M12 16c-4 0-6-2.5-6-5.5S8.5 4 12 2c3.5 2 6 5.5 6 8.5S16 16 12 16z"/></svg>
+        <span class="mode-name">Scenic</span><span class="mode-time" data-time="scenic"></span>
+      </button>
     </div>
 
-    <div id="summary" class="summary">
-      <p class="hint">Pick a destination to see your line.</p>
-    </div>
+    <div id="summary" class="summary"></div>
 
-    <button id="go" class="go" type="button" disabled>GO</button>
+    <div class="actions">
+      <button id="go" class="start" type="button" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4.5 20.3l.7.7L12 18l6.8 3 .7-.7z"/></svg>
+        <span id="go-label">Start</span>
+      </button>
+      <a id="gmaps" class="pill" href="https://www.google.com/maps" target="_blank" rel="noopener" hidden>Open in Google Maps</a>
+    </div>
   </section>
 
 </body>
